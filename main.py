@@ -1,15 +1,53 @@
 from flask import Flask, render_template, request
+from flask import g
+from flask_wtf.csrf import CSRFProtect
+from flask import flash
+import forms
 
-app = Flask(__name__)#objeto de la aplicacion creando la aplicacion
+app = Flask(__name__)
+app.secret_key = "Esta es la clave"
+csrf = CSRFProtect()
 
-@app.route('/')#decorador o ruta de la aplicacion
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
+
+@app.before_request
+def before_request():
+    print("Before 1")
+
+@app.after_request
+def after_request(response):
+    print("after 3")
+    return response 
+
+@app.route('/')
 def index():
     grupo='IDGS803'
     lista=['Gael','Jorge']
     return render_template('index.html',grupo=grupo,lista=lista)
 
+@app.route("/Alumnos", methods=["GET","POST"])
+def alumnos():
+    mat=""
+    nom=""
+    edad=""
+    correo=""
+    ape=""
+    alumno_clase=forms.UserForm(request.form)
+    if request.method=="POST":
+        mat = alumno_clase.matricula.data
+        nom = alumno_clase.nombre.data
+        edad = alumno_clase.edad.data
+        correo = alumno_clase.correo.data
+        ape = alumno_clase.apellidos.data
+        print("Alumnos")
+        mensaje = "Binevenido {}".format(nom)
+        flash(mensaje)
+    return render_template("Alumnos.html",form=alumno_clase,mat=mat,nom=nom,edad=edad,correo=correo,ape=ape)
 
-@app.route('/OperasBase')#decorador o ruta de la aplicacion
+@app.route('/OperasBase')
 def Operas():
     return render_template('OperasBase.html')
 
@@ -71,19 +109,19 @@ def cinepolis():
 
 @app.route('/entradas', methods=['GET', 'POST'])
 def pagar():
-    pagar = ""  
+    resultado = ""  
 
     if request.method == 'POST':
         try:
             nombre = request.form['nombre']
             cantidad_compradores = int(request.form['compradores'])  
-            cineco = (request.form['cineco'])
+            cineco = int(request.form['cineco'])
             boletos = int(request.form['boletos'])  
             
             boletos_permitidos = (cantidad_compradores + 1) * 7  
 
             if boletos > boletos_permitidos:
-                pagar = f"Solo se permiten comprar 7 boletos por persona"
+                resultado = f"Solo se permiten comprar 7 boletos por persona"
             else:
                 precioBoleto = 12.00
                 total = boletos * precioBoleto
@@ -107,4 +145,5 @@ def pagar():
     return render_template('cinepolis.html', resultado=resultado)
 
 if __name__ == '__main__': #indicamos de donde se ejecuta la aplicacion
+    csrf.init_app(app)
     app.run(debug=True,port=8080)#el debug es para que se actualice automaticamente
